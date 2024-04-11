@@ -1,0 +1,121 @@
+```{r}
+#library
+library(psych)
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(RColorBrewer)
+library(knitr)
+library(ggplot2)
+library(DT)
+library(corrplot)
+library(dlookr)
+library(car)
+library(leaps)
+library(ISLR)
+library(caret)
+library(pROC)
+library(kableExtra)
+library(glmnet)
+library(Metrics)
+library(readxl)
+credit_train=read_excel("/Users/manasbabbar/Documents/ALY 6000 R project/Credit_train.xlsx")
+```
+```{r}
+#Normalising the Data set
+process= preProcess(credit_train,method = c("range"))
+credit_train= predict(process,credit_train)
+datatable(head(credit_train))
+```
+
+```{r message=FALSE, warning=FALSE}
+#Split the data into a train and test set – refer to the Feature_Selection_R.pdf document for information on how to split a dataset.
+set.seed(123)
+credit_trainIndex <- createDataPartition(credit_train$`Loan Approval`, p = 0.6, list = FALSE)
+SampleTrain= credit_train[credit_trainIndex,]
+SampleTest= credit_train[-credit_trainIndex,]
+```
+```{r}
+train_x= data.matrix(subset(SampleTrain, select = -c(`Maximum Open Credit`)))
+
+test_x= data.matrix(subset(SampleTest, select = -c(`Maximum Open Credit`)))
+
+train_y= SampleTrain$`Maximum Open Credit`
+test_y= SampleTest$`Maximum Open Credit`
+```
+
+```{r}
+#RIDGE REGRESSION
+#Using Glmnet function finding best value for lambda 
+set.seed(222)
+ridge= cv.glmnet(train_x,train_y,nfolds = 10,alpha=0)
+print(paste("lamnda Minimum is",ridge$lambda.min))
+print(paste("lamnda 1 Standard error is",ridge$lambda.1se))
+log(ridge$lambda.min)
+log(ridge$lambda.1se)
+plot(ridge)
+```
+```{r}
+#Fit base models
+#Model with the minimum lambda value
+RMinModel=glmnet(train_x,train_y,alpha = 0,lambda = ridge$lambda.min)
+#MinModel coefficients
+coefficients(RMinModel)
+```
+```{r}
+#Model with the 1se lambda value
+RSE1Model=glmnet(train_x,train_y,alpha = 0,lambda = ridge$lambda.1se)
+#MinModel coefficients
+coefficients(RSE1Model)
+```
+```{r}
+#train set predictiction and calculating RMSE
+RPred_train=predict(RSE1Model,newx = train_x)
+RRMSE_train=rmse(train_y,RPred_train)
+RRMSE_train
+```
+```{r}
+#test set predictiction and calculating RMSE
+RPred_test=predict(RSE1Model,newx = test_x)
+RRMSE_test=rmse(test_y,RPred_test)
+RRMSE_test
+```
+
+
+```{r}
+#LASSO REGRESSION
+#Using Glmnet function finding best value for lambda 
+set.seed(123)
+lasso= cv.glmnet(train_x,train_y,nfolds = 10,alpha=1)
+print(paste("lamnda Minimum is",lasso$lambda.min))
+print(paste("lamnda 1 Standard error is",lasso$lambda.1se))
+log(lasso$lambda.min)
+log(lasso$lambda.1se)
+plot(lasso)
+```
+```{r}
+#Fit base models
+#Model with the minimum lambda value
+MinModel=glmnet(train_x,train_y,alpha = 1,lambda = lasso$lambda.min)
+#MinModel coefficients
+coefficients(MinModel)
+```
+```{r}
+#Model with the 1se lambda value
+SE1Model=glmnet(train_x,train_y,alpha = 1,lambda = lasso$lambda.1se)
+#MinModel coefficients
+coefficients(SE1Model)
+```
+```{r}
+#train set predictiction and calculating RMSE
+Pred_train=predict(SE1Model,newx = train_x)
+RMSE_train=rmse(train_y,Pred_train)
+RMSE_train
+```
+```{r}
+#test set predictiction and calculating RMSE
+Pred_test=predict(SE1Model,newx = test_x)
+RMSE_test=rmse(test_y,Pred_test)
+RMSE_test
+```
+

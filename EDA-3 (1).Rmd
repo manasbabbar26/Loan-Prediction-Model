@@ -1,0 +1,60 @@
+```{r}
+#library
+library(psych)
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(RColorBrewer)
+library(knitr)
+library(ggplot2)
+library(DT)
+library(corrplot)
+library(dlookr)
+library(car)
+library(leaps)
+library(ISLR)
+library(caret)
+Credit_train=read.csv("/Users/manasbabbar/Downloads/Credit_train.csv")
+```
+
+```{r}
+#Performing EDA on the imported baseball data set
+
+datatable(psych::describe(Credit_train)%>%t()%>%round(3))
+
+plot(density(Credit_train$Annual.Income,na.rm = T),
+     main = "Density plot for Annual Income",
+     ylab = "Frequency",
+     col = "purple")
+
+boxplot(Credit_train$Annual.Income,na.rm=T,
+        horizontal = T,
+        main = "Boxplot of Annual Income",
+        col = "lavender",ylim=c(0,18000000))
+```
+
+```{r}
+par(mar=c(4,9,5,5))
+X=table(Credit_train$Home.Ownership)
+y=barplot(X,col = brewer.pal(5,"Set1"),horiz = T,las=1,xlim = c(0,55000),main = "Home Ownership")
+text(X,y,X,pos = 4)
+Z=table(Credit_train$Purpose)
+N=barplot(Z,col = brewer.pal(5,"Set1"),horiz = T,las=1,xlim = c(0,87000),main = "Purpose of lown",cex.axis = 0.8)
+text(Z,N,Z,pos = 4)
+M=table(Credit_train$Term)
+pie(M,main = "Loan Term",col = c("Blue","pink"))
+```
+
+```{r}
+
+a = table(Credit_train$Approval)
+a
+ 
+b = barplot(a,
+         col = c("#29B7B3", "#8369CB"),
+         xlim = c(0,12),
+         las = 1, ylim=c(0,6000))
+
+```
+
+

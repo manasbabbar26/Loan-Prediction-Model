@@ -1,0 +1,98 @@
+```{r}
+#library
+library(psych)
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(RColorBrewer)
+library(knitr)
+library(ggplot2)
+library(DT)
+library(corrplot)
+library(dlookr)
+library(car)
+library(leaps)
+library(ISLR)
+library(caret)
+library(pROC)
+library(kableExtra)
+library(glmnet)
+library(Metrics)
+library(readxl)
+library(caret)
+credit_train=read_excel("/Users/manasbabbar/Documents/ALY 6000 R project/Capstone.xlsx")
+```
+
+```{r}
+#Normalising the Data set using range method
+
+process= preProcess(credit_train,method = c("range"))
+credit_train= predict(process,credit_train)
+datatable(tail(credit_train))
+```
+
+```{r message=FALSE, warning=FALSE}
+#Split the data into a train and test set – refer to the Feature_Selection_R.pdf document for information on how to split a dataset.
+set.seed(222)
+credit_trainIndex <- createDataPartition(credit_train$`LoanApproval`, p = 0.6, list = FALSE)
+SampleTrain= credit_train[credit_trainIndex,]
+SampleTest= credit_train[-credit_trainIndex,]
+```
+
+```{r}
+#Using GLM
+model= glm(as_factor(`LoanApproval`)~.,data = SampleTrain,family = binomial(link = "logit"))
+summary(model)
+```
+
+
+```{r}
+#Model 2
+model2=glm(as_factor(`LoanApproval`)~SampleTrain$Applicant_Age+SampleTrain$Years_of_Working+SampleTrain$Total_Good_Debt,data = SampleTrain,family = binomial(link = "logit"))
+summary(model2)
+#Display model coef
+exp(coef(model2))
+```
+
+```{r}
+#MAKE PREDICTIONS Train set
+PSampleTrain= predict(model2,newdata = SampleTrain,type = "response")
+Pclasess= as.factor(ifelse(PSampleTrain>=0.5,"Yes","No"))
+
+```
+
+```{r}
+#Confusion Matrix
+confusionMatrix(Pclasess,as.factor(SampleTrain$LoanApproval),positive = "Yes")
+```
+
+
+
+
+
+
+```{r}
+#ROC 
+Roc=roc(as.factor(SampleTrain$LoanApproval),PSampleTrain)
+Roc$auc
+```
+
+```{r}
+plot(Roc,col="red",ylab="Senstivity True Positive rate",xlab= "Specificity False positive rate")
+```
+
+```{r}
+Roc$auc
+```
+```{r}
+RMSE=read_excel("/Users/manasbabbar/Documents/ALY 6000 R project/RMSE.xlsx")
+
+
+barplot(RMSE$RMSE~RMSE$SET)
+barplot(RMSE$Rmse~RMSE$SET)
+```
+```{r}
+barplot(RMSE$RMSE~RMSE$SET,col = brewer.pal(5,"Set1"),horiz = T,las=1,xlim = c(0,12000000),main = "RMSE VALUES FOR RIDGE",xlab = "RMSE VALUES",ylab = "")
+barplot(RMSE$Rmse~RMSE$SET,col = brewer.pal(5,"Set1"),horiz = T,las=1,xlim = c(0,12000000),main = "RMSE VALUES FOR LASSO",xlab = "RMSE VALUES",ylab = "")
+```
+

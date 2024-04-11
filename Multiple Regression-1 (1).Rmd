@@ -1,0 +1,159 @@
+---
+title: "Final Project"
+author: "Vidyananda, Sudhamshu"
+date: '2022-05-04'
+output: html_document
+---
+
+```{r echo=TRUE, warning=FALSE}
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(DT)
+library(RColorBrewer)
+library(rio)
+library(ggplot2)
+library(kableExtra)
+library(corrplot)
+library(car)
+```
+
+#regression model
+```{r echo=TRUE, warning=FALSE}
+inputdataset <- read.csv("/Users/sudhamshuvidyananda/Documents/Intermediate Analytics/ALY6015_Project/FinalProject/credit_train.csv")
+inputdataset
+```
+#to check if applicant is good or bad.
+Ho: If the credit score is low, applicant is bad
+Ha: If the credit score is more, applicant is good
+```{r echo=TRUE, warning=FALSE}
+
+	
+# Remove null  & NA values(normalization)
+inputdataset <- na.omit(inputdataset)
+inputdataset
+
+#rename
+names(inputdataset)[1] <- 'loan_id'
+names(inputdataset)[2] <- 'customer_id'
+names(inputdataset)[3] <- 'loan_status'
+names(inputdataset)[4] <- 'Current_loan_amount'
+names(inputdataset)[6] <- 'credit_score'
+names(inputdataset)[7] <- 'annual_income'
+names(inputdataset)[8] <- 'years_in_current_job'
+names(inputdataset)[9] <- 'home_ownership'
+names(inputdataset)[11] <- 'monthly_debt'
+names(inputdataset)[12] <- 'Years_of_credit_history'
+names(inputdataset)[13] <- 'Months_since_lastdelinquent'
+names(inputdataset)[14] <- 'Number_of_Open_Accounts'
+names(inputdataset)[15] <- 'Number_of_Credit_Problems'
+names(inputdataset)[16] <- 'Current_Credit_Balance'
+names(inputdataset)[17] <- 'Maximum_Open_Credit'
+names(inputdataset)[19] <- 'Tax_Liens'
+
+#Calculation correlation coeeficient
+cor1 <- round(cor(inputdataset$Current_loan_amount, inputdataset$monthly_debt),3)
+cor2 <- round(cor(inputdataset$Current_loan_amount, inputdataset$credit_score),3)
+cor3 <-round(cor(inputdataset$Current_loan_amount, inputdataset$Years_of_credit_history),3)
+cor4 <- round(cor(inputdataset$Current_loan_amount,inputdataset$Number_of_Open_Accounts),3)
+cor5 <- round(cor(inputdataset$Current_loan_amount ,inputdataset$Current_Credit_Balance),3)
+
+#selecting required columns
+Resultdataset <- inputdataset %>% select (Current_loan_amount, credit_score, Years_of_credit_history, Number_of_Open_Accounts, Current_Credit_Balance, annual_income, Maximum_Open_Credit)
+
+#correlation matrix 
+correlation <- cor(Resultdataset, use = 'pairwise')
+correlation
+corrplot(correlation, type='upper', col = brewer.pal(n=8, name = "Set3"))
+
+#linear regression
+l1 <- lm(inputdataset$Current_loan_amount~inputdataset$monthly_debt)
+summary(l1)
+l2<-lm(inputdataset$Current_loan_amount~inputdataset$credit_score)
+l3<- lm(inputdataset$Current_loan_amount~inputdataset$Years_of_credit_history)
+l4 <- lm(inputdataset$Current_loan_amount~ inputdataset$Number_of_Open_Accounts)
+l5 <- lm(inputdataset$Current_loan_amount ~inputdataset$Current_Credit_Balance)
+
+#Calculation determination coefficient 
+cord1 <- (cor1^2)
+cord2 <- cor2^2
+cord3 <- cor3^2
+cord4 <- cor4^2
+cord5 <- cor5^2
+
+#creating table for correlation coefficients
+table <- c(cor1,cor2, cor3, cor4, cor5, cord1,cord2, cord3,cord4,cord5)
+
+titles <-c("corr_y_credit/x1_MonthlyDebt","corr_y_credit/x2_loanamount","corr_y_credit/x3_credithistory","corr_y_credit/x4_openaccounts","corr_y_credit/x5_creditbalance", "deter_y_credit/x1_MonthlyDebt","deter_y_credit/x2_loanamount","deter_y_credit/x3_credithistory","deter_y_credit/x4_openaccounts","deter_y_credit/x5_creditbalance")
+names(table)<- titles
+table
+
+#multiple regression 
+model <- lm(formula = inputdataset$Current_loan_amount~inputdataset$monthly_debt+inputdataset$credit_score+inputdataset$Years_of_credit_history+inputdataset$Number_of_Open_Accounts+inputdataset$Current_Credit_Balance)
+
+a <- summary(model)
+
+#multiple regression formula:
+print(paste("Multiple regression y'=", a$coefficients[1],6,"+", round(a$coefficients[2],6),"monthly_debt +",round(a$coefficients[3],6),"credit_score +", round(a$coefficients[4],6),"Years_of_credit_history +",round(a$coefficients[5],6),"Number_of_open_accounts +",
+round(a$coefficients[6],6),"Current_credit_balance "))
+
+a1 <- a$coefficients[1]
+b1 <- a$coefficients[2]
+b2 <- a$coefficients[3]
+b3 <- a$coefficients[4]
+b4 <- a$coefficients[5]
+b5 <- a$coefficients[6]
+
+#calculating the predicted and residulal values 
+new_table <- mutate(Resultdataset, predicted_value=round(a1+b1*inputdataset$monthly_debt+b2*inputdataset$credit_score+b3*inputdataset$Years_of_credit_history+b4*inputdataset$Number_of_Open_Accounts+b5*inputdataset$Current_Credit_Balance,3), Residual_value =round(inputdataset$Current_loan_amount-predicted_value,3))
+new_table
+
+par(mfrow=c(1,2))
+plot(new_table$Residual_value~new_table$credit_score, xlab="Credit score", ylab="Residual", pch=24, col="salmon",xlim =c(5500,8000))
+
+plot(new_table$Residual_value~new_table$Years_of_credit_history, xlab="Credit History", ylab="Residual", pch=16, col="olivedrab1")
+
+#qplot for fitted models and residuals
+par(mfrow = c(2,2))
+
+plot(model)
+
+qqPlot(model, labels= row.names(n1), simulate= TRUE)
+
+crPlots(model = model)
+
+spreadLevelPlot(model)
+
+#plots for linear regression
+plot(inputdataset$Current_loan_amount~ inputdataset$monthly_debt, xlab='Monthly_debt', ylab='Current_Loan_amount', col='red')
+abline(l1)
+
+plot(inputdataset$Current_loan_amount~inputdataset$credit_score, xlab='credit_score', ylab='Current_Loan_amount', col='green')
+abline(l2)
+
+plot(inputdataset$Current_loan_amount~inputdataset$Years_of_credit_history,xlab='Years_of_credit_history', ylab='Current_Loan_amount', col='red')
+abline(l3)
+
+plot(inputdataset$Current_loan_amount~ inputdataset$Number_of_Open_Accounts, xlab='Number of open accounts', ylab='Current_Loan_amount', col='orange')
+abline(l4)
+
+plot(inputdataset$Current_loan_amount ~inputdataset$Current_Credit_Balance,xlab='Current_credit_balance', ylab='Current_Loan_amount', col='red' )
+abline(l5)
+
+#hypothesis testing
+alpha <- 0.05
+
+leftcrit_value <- round(qnorm(alpha/2),2)
+rightcrit_value <- round(qnorm(1-(alpha/2)),2)
+summary(model)$fstatistic[1]
+pvalue <- pf(summary(model)$fstatistic[1],summary(model)$fstatistic[2],summary(model)$fstatistic[3], lower.tail = FALSE)
+pvalue 
+print(paste("coefficient of determination is", summary(model)$r.squared))
+
+Statement <-ifelse(pvalue > alpha, "Fail to reject Ho", "Reject Ho")
+Statement
+
+print(paste("The conclusion is: ", Statement))
+
+
+```
